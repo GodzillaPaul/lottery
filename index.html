@@ -2,98 +2,154 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>抽獎小程式</title>
+  <title>轉盤抽獎程式</title>
   <style>
     body {
-      background: linear-gradient(to right, #fdfbfb, #ebedee);
-      font-family: 'Segoe UI', 'Microsoft JhengHei', sans-serif;
+      background: #f9f9f9;
+      font-family: "Microsoft JhengHei", sans-serif;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 60px 20px;
+      padding: 40px;
     }
 
-    h2 {
-      font-size: 32px;
+    h1 {
+      margin-bottom: 20px;
+      font-size: 28px;
       color: #333;
     }
 
-    input[type="text"] {
-      width: 90%;
-      max-width: 500px;
-      padding: 12px;
-      font-size: 16px;
-      border: 2px solid #ccc;
-      border-radius: 8px;
-      box-shadow: inset 1px 1px 5px rgba(0,0,0,0.05);
-      transition: 0.3s;
+    .wheel-container {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      border: 8px solid #4CAF50;
+      overflow: hidden;
+      margin: 30px 0;
     }
 
-    input[type="text"]:focus {
-      border-color: #4CAF50;
-      outline: none;
+    .wheel {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      transition: transform 5s cubic-bezier(0.33, 1, 0.68, 1);
+      transform: rotate(0deg);
+    }
+
+    .segment {
+      position: absolute;
+      width: 50%;
+      height: 50%;
+      top: 50%;
+      left: 50%;
+      transform-origin: 0% 0%;
+      background-color: #f1f1f1;
+      border: 1px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    #pointer {
+      width: 0;
+      height: 0;
+      border-left: 15px solid transparent;
+      border-right: 15px solid transparent;
+      border-bottom: 25px solid #e53935;
+      position: absolute;
+      top: -35px;
+      left: calc(50% - 15px);
     }
 
     button {
-      margin-top: 20px;
-      background-color: #4CAF50;
-      border: none;
+      background: #4CAF50;
       color: white;
-      padding: 12px 30px;
+      padding: 12px 28px;
+      border: none;
+      border-radius: 25px;
       font-size: 18px;
-      border-radius: 30px;
       cursor: pointer;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-      transition: background 0.3s ease;
+      margin-top: 20px;
     }
 
     button:hover {
-      background-color: #45a049;
+      background: #43a047;
     }
 
-    #result {
-      margin-top: 40px;
-      font-size: 28px;
-      font-weight: bold;
-      color: #e53935;
-      animation: pop 0.4s ease;
+    #winner {
+      font-size: 22px;
+      color: #d32f2f;
+      margin-top: 20px;
     }
 
-    @keyframes pop {
-      0% { transform: scale(0.5); opacity: 0; }
-      100% { transform: scale(1); opacity: 1; }
+    textarea {
+      width: 300px;
+      height: 80px;
+      font-size: 14px;
+      margin-top: 20px;
     }
   </style>
 </head>
 <body>
 
-  <h2>🎁 抽獎小程式</h2>
-  <p>請輸入參加者姓名（以「,」逗號分隔）：</p>
-  <input type="text" id="names" value="小明,小美,阿強,麗麗,阿志">
+  <h1>🎡 轉盤抽獎小程式</h1>
+  <div class="wheel-container">
+    <div id="pointer"></div>
+    <div id="wheel" class="wheel"></div>
+  </div>
 
-  <button onclick="draw()">抽出得獎者</button>
+  <button onclick="spin()">開始抽獎</button>
+  <div id="winner"></div>
 
-  <div id="result"></div>
+  <p>參加者名單（用「,」逗號分隔）：</p>
+  <textarea id="names">小明,小美,志強,阿花,小黃,大雄</textarea>
 
   <script>
-    function draw() {
-      const input = document.getElementById("names").value;
-      const names = input.split(',').map(name => name.trim()).filter(name => name);
-      const result = document.getElementById("result");
+    const wheel = document.getElementById('wheel');
+    let currentRotation = 0;
 
-      if (names.length === 0) {
-        result.innerHTML = '⚠️ 名單為空，請輸入參加者';
-        result.style.color = '#f57c00';
+    function drawWheel() {
+      wheel.innerHTML = '';
+      const names = document.getElementById("names").value.split(',').map(n => n.trim()).filter(n => n);
+      const count = names.length;
+      const anglePerSlice = 360 / count;
+
+      names.forEach((name, i) => {
+        const segment = document.createElement('div');
+        segment.className = 'segment';
+        segment.style.transform = `rotate(${i * anglePerSlice}deg) skewY(${90 - anglePerSlice}deg)`;
+        segment.style.backgroundColor = `hsl(${i * (360 / count)}, 70%, 80%)`;
+        segment.innerHTML = `<div style="transform: skewY(${-(90 - anglePerSlice)}deg) rotate(${anglePerSlice / 2}deg); transform-origin: center; width: 100%; text-align: center;">${name}</div>`;
+        wheel.appendChild(segment);
+      });
+    }
+
+    function spin() {
+      const names = document.getElementById("names").value.split(',').map(n => n.trim()).filter(n => n);
+      if (names.length < 2) {
+        alert("請輸入至少兩位參加者！");
         return;
       }
 
-      const winner = names[Math.floor(Math.random() * names.length)];
-      result.style.color = '#e53935';
-      result.innerHTML = `🎉 恭喜得獎者是：<span style="color: #2e7d32;">${winner}</span> 🎊`;
-      result.style.animation = 'none';
-      result.offsetHeight; // 觸發重繪動畫
-      result.style.animation = 'pop 0.4s ease';
+      const randomIndex = Math.floor(Math.random() * names.length);
+      const anglePerSlice = 360 / names.length;
+      const targetAngle = 360 - (randomIndex * anglePerSlice + anglePerSlice / 2);
+      const rotateAmount = 360 * 5 + targetAngle;
+
+      currentRotation += rotateAmount;
+      wheel.style.transform = `rotate(${currentRotation}deg)`;
+
+      setTimeout(() => {
+        document.getElementById("winner").innerText = `🎉 恭喜得獎者是：${names[randomIndex]}`;
+      }, 5200);
     }
+
+    drawWheel();
+    document.getElementById("names").addEventListener("input", drawWheel);
   </script>
 
 </body>
